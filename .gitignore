@@ -1,0 +1,23 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+.env
+
+# --- voice model---
+/models/vosk-model-*/
+
+# --- logs and temp files---
+*.log
+*.tmp
+
+# --- IDEs ---
+.vscode/
+.idea/
+.DS_Store
+
+# --- system files---
+Thumbs.db
+desktop.ini
