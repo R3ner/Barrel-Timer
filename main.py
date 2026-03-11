@@ -7,11 +7,25 @@ import pyaudio
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout, 
                              QVBoxLayout, QLabel, QComboBox, QFrame, QGraphicsOpacityEffect,
                              QPushButton, QSpinBox, QCheckBox)
-from PySide6.QtCore import Qt, QTimer, Slot, QThread
-from PySide6.QtGui import QPixmap, QColor, QFont, QIcon
+from PySide6.QtCore import Qt, QTimer, Slot, QThread, QPropertyAnimation, QPoint, QEasingCurve, QUrl
+from PySide6.QtGui import QPixmap, QColor, QFont, QIcon, QMovie
+from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from voice_engine import VoiceEngine
 from config_manager import ConfigManager
 from timer_logic import SpellTimer
+import PySide6.QtGui as QtGui
+from PySide6.QtWidgets import QToolTip
+
+class HoverButton(QPushButton):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setMouseTracking(True)
+
+    def enterEvent(self, event):
+        tooltip = self.toolTip()
+        if tooltip:
+            QToolTip.showText(QtGui.QCursor.pos(), tooltip, self)
+        super().enterEvent(event)
 
 class BootControl(QWidget):
     def __init__(self, role, parent):
@@ -27,13 +41,13 @@ class BootControl(QWidget):
         self.layout.setAlignment(Qt.AlignCenter)
 
         # Ionian
-        self.ionian = QPushButton()
+        self.ionian = HoverButton()
         self.setup_btn(self.ionian, "Ionian_Boots_of_Lucidity_HD.png", "Ionian Boots (+10 Haste)")
         self.ionian.clicked.connect(self.on_ionian_clicked)
         self.layout.addWidget(self.ionian)
 
         # Crimson
-        self.crimson = QPushButton()
+        self.crimson = HoverButton()
         self.setup_btn(self.crimson, "Crimson_Lucidity_HD.png", "Crimson Boots (+20 Haste)")
         self.crimson.clicked.connect(self.on_crimson_clicked)
         self.layout.addWidget(self.crimson)
@@ -273,8 +287,18 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Barrel Timer - Gragas Edition")
-        self.setMinimumSize(1200, 800)
-        self.setStyleSheet("background-color: #0F0F0F; color: #F0E6D2;")
+        self.setMinimumSize(1300, 1000)
+        self.setStyleSheet("""
+            QMainWindow { background-color: #0F0F0F; color: #F0E6D2; }
+            QToolTip { 
+                background-color: #1a1a1a; 
+                color: #C89B3C; 
+                border: 1px solid #C89B3C; 
+                font-size: 18px; 
+                font-weight: bold;
+                padding: 5px;
+            }
+        """)
         
         icon_path = "assets/images/gragas_barrel_timer.png"
         if os.path.exists(icon_path):
@@ -337,20 +361,35 @@ class MainWindow(QMainWindow):
 
         header_layout.addStretch()
 
-        # Center: Branding
-        title_vbox = QVBoxLayout()
+        # Center: Branding (with background logo)
+        title_container = QWidget()
+        title_container.setFixedSize(600, 200)
+        bg_logo_path = "assets/images/barrel_0.png"
+        if os.path.exists(bg_logo_path):
+            title_container.setStyleSheet(f"""
+                QWidget {{
+                    background-image: url("{bg_logo_path.replace('\\', '/')}");
+                    background-position: center;
+                    background-repeat: no-repeat;
+                }}
+            """)
+        
+        title_vbox = QVBoxLayout(title_container)
+        title_vbox.setAlignment(Qt.AlignCenter)
+        
         self.brand_label = QLabel("BARREL TIMER")
         self.brand_label.setFont(QFont("Impact", 48))
-        self.brand_label.setStyleSheet("color: #C89B3C; margin-bottom: 0px;")
+        self.brand_label.setStyleSheet("color: #C89B3C; background: transparent; margin-bottom: 0px;")
         self.brand_label.setAlignment(Qt.AlignCenter)
         title_vbox.addWidget(self.brand_label)
         
-        self.sub_brand_label = QLabel("by Rener - v1.4-beta")
-        self.sub_brand_label.setFont(QFont("Segoe UI", 12))
-        self.sub_brand_label.setStyleSheet("color: #888;")
+        self.sub_brand_label = QLabel("by Rener - v1.9.3-alpha")
+        self.sub_brand_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
+        self.sub_brand_label.setStyleSheet("color: #00FF00; background: transparent;")
         self.sub_brand_label.setAlignment(Qt.AlignCenter)
         title_vbox.addWidget(self.sub_brand_label)
-        header_layout.addLayout(title_vbox)
+        
+        header_layout.addWidget(title_container)
 
         header_layout.addStretch()
 
@@ -360,11 +399,28 @@ class MainWindow(QMainWindow):
         right_layout = QVBoxLayout(right_box)
         
         self.logo_label = QLabel()
+        self.logo_label.setFixedSize(160, 160)
+        self.logo_label.setAlignment(Qt.AlignCenter)
+        
+        # Static Pixmap
         logo_path = "assets/images/gragas_barrel_timer.png"
         if os.path.exists(logo_path):
-            pixmap = QPixmap(logo_path)
-            self.logo_label.setPixmap(pixmap.scaled(180, 160, Qt.KeepAspectRatio, Qt.SmoothTransformation))
+            self.static_pixmap = QPixmap(logo_path).scaled(160, 160, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+            self.logo_label.setPixmap(self.static_pixmap)
+        
+        # Speaking Movie (GIF)
+        gif_path = "assets/images/gragas_barrel_timer_speaking.gif"
+        self.speaking_movie = None
+        if os.path.exists(gif_path):
+            self.speaking_movie = QMovie(gif_path)
+            self.speaking_movie.setScaledSize(self.logo_label.size())
+            
         right_layout.addWidget(self.logo_label, alignment=Qt.AlignRight)
+        
+        # Shake Animation setup
+        self.shake_anim = QPropertyAnimation(self.logo_label, b"pos")
+        self.shake_anim.setDuration(50)
+        self.shake_anim.setLoopCount(-1)
         
         # Unleashed TP Toggle Area
         tp_area = QHBoxLayout()
@@ -580,6 +636,42 @@ class MainWindow(QMainWindow):
         sound_file = f"{role}_{spell}_ready.wav"
         self.sound_queue.put(sound_file)
 
+    def start_gragas_speaking(self, duration_ms):
+        if self.speaking_movie:
+            self.logo_label.setMovie(self.speaking_movie)
+            self.speaking_movie.start()
+        
+        # Shake effect logic
+        origin = self.logo_label.pos()
+        self.shake_origin = QPoint(origin.x(), origin.y())
+        
+        self.shake_anim.setStartValue(self.shake_origin)
+        # Fix: PySide6 requires a sequence of tuples [(progress, value), ...]
+        self.shake_anim.setKeyValues([
+            (0.2, self.shake_origin + QPoint(2, -2)),
+            (0.4, self.shake_origin + QPoint(-2, 2)),
+            (0.6, self.shake_origin + QPoint(1, -1)),
+            (0.8, self.shake_origin + QPoint(-1, 1)),
+            (1.0, self.shake_origin)
+        ])
+        self.shake_anim.start()
+        
+        # Manually stop after duration
+        QTimer.singleShot(duration_ms, self.stop_gragas_speaking)
+
+    def stop_gragas_speaking(self):
+        if self.speaking_movie:
+            self.speaking_movie.stop()
+            self.logo_label.setMovie(None) # Explicitly clear movie
+            self.logo_label.setPixmap(self.static_pixmap)
+        
+        self.shake_anim.stop()
+        if hasattr(self, 'shake_origin'):
+            self.logo_label.move(self.shake_origin)
+        
+        # Important: Allow next sound in queue
+        self.is_playing_sound = False
+
     def process_audio_queue(self):
         if not self.is_playing_sound and not self.sound_queue.empty():
             filename = self.sound_queue.get()
@@ -587,10 +679,11 @@ class MainWindow(QMainWindow):
 
     def play_sound_sync(self, filename):
         voice_set = self.config.get("voice_set", "v1")
-        if filename in ["beep.wav", "beep-error.wav", "button_1.wav", "button_2.wav"]:
+        is_immediate = filename in ["beep.wav", "beep-error.wav", "button_1.wav", "button_2.wav"]
+        
+        if is_immediate:
             path = os.path.join("assets", "sounds", filename)
         else:
-            # Handle specific filename outlier
             if filename == "jungler_heal_ready.wav":
                 alt_path = os.path.join(ConfigManager.get_voice_set_path(voice_set), "jungle_heal_ready.wav")
                 if os.path.exists(alt_path):
@@ -599,18 +692,14 @@ class MainWindow(QMainWindow):
             
         if os.path.exists(path):
             try:
-                self.is_playing_sound = True
                 sound = pygame.mixer.Sound(path)
-                channel = sound.play()
-                if channel:
-                    # Non-blocking wait using a timer or check
-                    def check_channel():
-                        if not channel.get_busy():
-                            self.is_playing_sound = False
-                            self.check_timer.stop()
-                    self.check_timer = QTimer(self)
-                    self.check_timer.timeout.connect(check_channel)
-                    self.check_timer.start(50)
+                sound.play()
+                
+                if not is_immediate:
+                    self.is_playing_sound = True
+                    # Sync animation with sound duration
+                    duration_ms = int(sound.get_length() * 1000) + 200
+                    self.start_gragas_speaking(duration_ms)
                 else:
                     self.is_playing_sound = False
             except Exception as e:
@@ -673,6 +762,7 @@ class MainWindow(QMainWindow):
         
         status = "Teleport Evolved! (240s)" if is_on else "Teleport Standard (360s)"
         self.update_status(status)
+        self.play_sound("button_2.wav")
 
     def closeEvent(self, event):
         self.voice_thread.stop()
