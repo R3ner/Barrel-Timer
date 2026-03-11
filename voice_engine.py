@@ -16,58 +16,66 @@ class VoiceEngine(QThread):
         self.mic_index = mic_index
         self.muted = False
         self.running = True
-        
         # Define roles and spells for grammar
         self.roles = {
             "top": "top",
-            "jungler": "jungler",
+            "stop": "top", 
             "jungle": "jungler",
-            "jungla": "jungler",
-            "jupa": "jungler",
+            "young": "jungler",  
+            "uncle": "jungler",  
             "mid": "mid",
+            "meet": "mid",   
+            "meat": "mid",
             "adc": "adc",
-            "adesé": "adc",
+            "eighty": "adc", 
+            "abc": "adc",    
+            "ades": "adc",   
             "carry": "adc",
-            "carri": "adc",
-            "karry": "adc",
             "support": "support",
-            "supp": "support"
+            "supp": "support",
+            "sport": "support",
+            "port": "support",
         }
         
         self.spells = {
             "flash": "flash",
+            "flas": "flash",
+            "flesh": "flash",
+            "flush": "flash", 
             "ignite": "ignite",
+            "night": "ignite",  
+            "unite": "ignite", 
             "teleport": "teleport",
             "tepe": "teleport",
-            "tepee": "teleport",
-            "tipi": "teleport",
-            "tipy": "teleport",
-            "teepee": "teleport",
-            "teepe": "teleport",
+            "tp": "teleport",
+            "tv": "teleport",   
             "ghost": "ghost",
             "gos": "ghost",
-            "goz": "ghost",
-            "gozz": "ghost",
+            "goes": "ghost",   
+            "gold": "ghost",   
             "barrier": "barrier",
+            "barr": "barrier",
             "cleanse": "cleanse",
+            "cleans": "cleanse",
+            "clean": "cleanse",
             "exhaust": "exhaust",
+            "exos": "exhaust",
             "smite": "smite",
-            "smaite": "smite",
-            "smitey": "smite",
-            "smayte": "smite",
-            "smayt": "smite",
+            "might": "smite",  
+            "smile": "smite",  
             "heal": "heal",
             "jil": "heal",
-            "hial": "heal",
-            "hil": "heal"
+            "hill": "heal",   
+            "hell": "heal",   
+            "ill": "heal"
         }
 
         grammar_list = list(self.roles.keys()) + list(self.spells.keys())
         self.grammar = json.dumps(grammar_list)
 
+
     def set_microphone(self, index):
         self.mic_index = index
-        # We'll need to restart the stream, handled by the loop checking for changes or just restarting the thread
 
     def set_muted(self, muted):
         self.muted = muted
@@ -125,18 +133,26 @@ class VoiceEngine(QThread):
             self.status_updated.emit(f"Error in voice engine: {str(e)}")
 
     def process_text(self, text):
-        words = text.split()
-        detected_role = None
-        detected_spell = None
+        try:
+            words = text.split()
+            detected_role = None
+            detected_spell = None
 
-        for word in words:
-            if word in self.roles:
-                detected_role = self.roles[word]
-            elif word in self.spells:
-                detected_spell = self.spells[word]
+            for word in words:
+                if word in self.roles:
+                    detected_role = self.roles[word]
+                elif word in self.spells:
+                    detected_spell = self.spells[word]
 
-        if detected_role and detected_spell:
-            self.command_detected.emit(detected_role, detected_spell)
+            if detected_role and detected_spell:
+                interpretation = f"{detected_role.upper()} {detected_spell.upper()}"
+                self.text_detected.emit(f"Vosk: \"{text}\" -> Timer: {interpretation}")
+                self.command_detected.emit(detected_role, detected_spell)
+            else:
+                self.text_detected.emit(f"Vosk: \"{text}\" (No interpretation)")
+
+        except Exception as e:
+            print(f"Error in process_text: {e}")
 
     def stop(self):
         self.running = False
