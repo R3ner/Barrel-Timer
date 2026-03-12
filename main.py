@@ -6,8 +6,8 @@ import time
 import pyaudio
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout, 
                              QVBoxLayout, QLabel, QComboBox, QFrame, QGraphicsOpacityEffect,
-                             QPushButton, QSpinBox, QCheckBox)
-from PySide6.QtCore import Qt, QTimer, Slot, QThread, QPropertyAnimation, QPoint, QEasingCurve, QUrl
+                             QPushButton, QSpinBox, QCheckBox, QGraphicsDropShadowEffect)
+from PySide6.QtCore import Qt, QTimer, Slot, Signal, QThread, QPropertyAnimation, QPoint, QEasingCurve, QUrl
 from PySide6.QtGui import QPixmap, QColor, QFont, QIcon, QMovie
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
 from voice_engine import VoiceEngine
@@ -15,6 +15,7 @@ from config_manager import ConfigManager
 from timer_logic import SpellTimer
 import PySide6.QtGui as QtGui
 from PySide6.QtWidgets import QToolTip
+from PySide6.QtGui import QPainter, QPainterPath, QPolygon
 
 class HoverButton(QPushButton):
     def __init__(self, *args, **kwargs):
@@ -26,6 +27,51 @@ class HoverButton(QPushButton):
         if tooltip:
             QToolTip.showText(QtGui.QCursor.pos(), tooltip, self)
         super().enterEvent(event)
+
+
+
+class SpeechBubble(QFrame):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setFixedWidth(250)
+        self.setMinimumHeight(60)
+        self.setAttribute(Qt.WA_TranslucentBackground)
+        
+        self.layout = QVBoxLayout(self)
+        self.label = QLabel("")
+        self.label.setFont(QFont("Comic Sans MS", 12))
+        self.label.setAlignment(Qt.AlignCenter)
+        self.label.setWordWrap(True)
+        self.label.setStyleSheet("color: #333; background: transparent; border: none; padding: 5px;")
+        self.layout.addWidget(self.label)
+        
+        self.hide()
+
+    def setText(self, text):
+        self.label.setText(text)
+        self.adjustSize()
+        self.setFixedWidth(max(250, self.label.width() + 20))
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # Bubble Body
+        rect = self.rect().adjusted(1, 1, -12, -1) # Leave space for the triangle on the right
+        painter.setBrush(QColor("#FFFDE7"))
+        painter.setPen(QtGui.QPen(QColor("#333"), 2))
+        painter.drawRoundedRect(rect, 15, 15)
+        
+        # Triangle pointing right (towards Gragas)
+        triangle = QPolygon([
+            QPoint(rect.right(), rect.center().y() - 10),
+            QPoint(rect.right() + 10, rect.center().y()),
+            QPoint(rect.right(), rect.center().y() + 10)
+        ])
+        painter.drawPolygon(triangle)
+        # Hide the border between bubble and triangle
+        painter.setPen(Qt.NoPen)
+        painter.drawPolygon(triangle)
 
 class BootControl(QWidget):
     def __init__(self, role, parent):
@@ -287,7 +333,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Barrel Timer - Gragas Edition")
-        self.setMinimumSize(1300, 1000)
+        self.setMinimumSize(1300, 1200)
         self.setStyleSheet("""
             QMainWindow { background-color: #0F0F0F; color: #F0E6D2; }
             QToolTip { 
@@ -309,6 +355,8 @@ class MainWindow(QMainWindow):
         self.sound_queue = queue.Queue()
         self.is_playing_sound = False
         self.role_haste = {r: 0 for r in ["top", "jungler", "mid", "adc", "support"]}
+        self.game_time = 0
+        self.game_timer_running = False
         
         self.init_ui()
         self.init_voice_engine()
@@ -322,6 +370,8 @@ class MainWindow(QMainWindow):
         self.queue_timer.timeout.connect(self.process_audio_queue)
         self.queue_timer.start(100)
 
+        self.play_sound("welcome.wav")
+
     def init_ui(self):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -333,7 +383,7 @@ class MainWindow(QMainWindow):
 
         # Left: Controls
         left_box = QWidget()
-        left_box.setFixedWidth(300)
+        left_box.setFixedWidth(550) # Balanced with right_box for centering
         left_layout = QVBoxLayout(left_box)
         mic_label = QLabel("MICROPHONE:")
         mic_label.setFont(QFont("Segoe UI", 9, QFont.Bold))
@@ -383,7 +433,7 @@ class MainWindow(QMainWindow):
         self.brand_label.setAlignment(Qt.AlignCenter)
         title_vbox.addWidget(self.brand_label)
         
-        self.sub_brand_label = QLabel("by Rener - v1.9.3-alpha")
+        self.sub_brand_label = QLabel("by Rener - v1.9.4-alpha")
         self.sub_brand_label.setFont(QFont("Segoe UI", 12, QFont.Bold))
         self.sub_brand_label.setStyleSheet("color: #00FF00; background: transparent;")
         self.sub_brand_label.setAlignment(Qt.AlignCenter)
@@ -395,9 +445,15 @@ class MainWindow(QMainWindow):
 
         # Right: Logo & Unleashed
         right_box = QWidget()
-        right_box.setFixedWidth(300)
+        right_box.setFixedWidth(550) # Increased to fit bubble
         right_layout = QVBoxLayout(right_box)
         
+        logo_row = QHBoxLayout()
+        logo_row.setAlignment(Qt.AlignRight)
+        
+        self.speech_bubble = SpeechBubble()
+        logo_row.addWidget(self.speech_bubble)
+
         self.logo_label = QLabel()
         self.logo_label.setFixedSize(160, 160)
         self.logo_label.setAlignment(Qt.AlignCenter)
@@ -415,7 +471,8 @@ class MainWindow(QMainWindow):
             self.speaking_movie = QMovie(gif_path)
             self.speaking_movie.setScaledSize(self.logo_label.size())
             
-        right_layout.addWidget(self.logo_label, alignment=Qt.AlignRight)
+        logo_row.addWidget(self.logo_label)
+        right_layout.addLayout(logo_row)
         
         # Shake Animation setup
         self.shake_anim = QPropertyAnimation(self.logo_label, b"pos")
@@ -440,6 +497,84 @@ class MainWindow(QMainWindow):
         tp_area.addWidget(self.unleashed_check)
         
         right_layout.addLayout(tp_area)
+
+        # Game Chrono (Repositioned under Gragas Logo)
+        chrono_box = QWidget()
+        chrono_hbox = QHBoxLayout(chrono_box)
+        chrono_hbox.setAlignment(Qt.AlignRight)
+        chrono_hbox.setContentsMargins(0, 5, 0, 0)
+
+        self.chrono_widget = QWidget()
+        self.chrono_widget.setFixedSize(180, 80)
+        bg_path = "assets/images/clock_bg.png"
+        self.chrono_widget.setStyleSheet(f"""
+            QWidget {{
+                background-image: url("{bg_path.replace('\\', '/')}");
+                background-position: center;
+                background-repeat: no-repeat;
+            }}
+        """)
+        
+        chrono_inner_layout = QVBoxLayout(self.chrono_widget)
+        chrono_inner_layout.setAlignment(Qt.AlignCenter)
+        chrono_inner_layout.setContentsMargins(0, 0, 0, 0)
+        
+        self.chrono_label = QLabel("00:00")
+        self.chrono_label.setFont(QFont("Segoe UI", 28, QFont.Bold))
+        self.chrono_label.setStyleSheet("color: #C89B3C; background: transparent;")
+        self.chrono_label.setAlignment(Qt.AlignCenter)
+        
+        shadow = QGraphicsDropShadowEffect()
+        shadow.setBlurRadius(5)
+        shadow.setXOffset(2)
+        shadow.setYOffset(2)
+        shadow.setColor(QColor(0, 0, 0, 200))
+        self.chrono_label.setGraphicsEffect(shadow)
+        chrono_inner_layout.addWidget(self.chrono_label)
+        
+        # Adjustment Buttons (Corners)
+        btn_style = """
+            QPushButton { 
+                background: rgba(0,0,0,150); color: #C89B3C; border: 1px solid #C89B3C; border-radius: 12px; font-weight: bold; 
+            } 
+            QPushButton:hover { background: #C89B3C; color: #000; }
+        """
+        self.minus_10_btn = HoverButton("-", self.chrono_widget)
+        self.minus_10_btn.setFixedSize(24, 24)
+        self.minus_10_btn.move(10, 50)
+        self.minus_10_btn.setStyleSheet(btn_style)
+        self.minus_10_btn.setToolTip("Shift + Click to fast decrease (-60s)")
+        self.minus_10_btn.clicked.connect(self.on_minus_clicked)
+        
+        self.plus_10_btn = HoverButton("+", self.chrono_widget)
+        self.plus_10_btn.setFixedSize(24, 24)
+        self.plus_10_btn.move(146, 50)
+        self.plus_10_btn.setStyleSheet(btn_style)
+        self.plus_10_btn.setToolTip("Shift + Click to fast increase (+60s)")
+        self.plus_10_btn.clicked.connect(self.on_plus_clicked)
+        
+        chrono_hbox.addWidget(self.chrono_widget)
+        
+        # Start/Pause & Reset Buttons
+        controls_vbox = QVBoxLayout()
+        controls_vbox.setSpacing(5)
+        
+        self.start_game_btn = QPushButton("START GAME")
+        self.start_game_btn.setFont(QFont("Segoe UI", 10, QFont.Bold))
+        self.start_game_btn.setFixedSize(110, 35)
+        self.start_game_btn.setStyleSheet("QPushButton { background: #111; color: #00FF00; border: 2px solid #00FF00; border-radius: 5px; } QPushButton:hover { background: #004400; }")
+        self.start_game_btn.clicked.connect(self.toggle_game_timer)
+        controls_vbox.addWidget(self.start_game_btn)
+
+        self.reset_game_btn = QPushButton("RESET")
+        self.reset_game_btn.setFont(QFont("Segoe UI", 10, QFont.Bold))
+        self.reset_game_btn.setFixedSize(110, 35)
+        self.reset_game_btn.setStyleSheet("QPushButton { background: #111; color: #C89B3C; border: 2px solid #C89B3C; border-radius: 5px; } QPushButton:hover { background: #900; color: #fff; border: 2px solid #f00; }")
+        self.reset_game_btn.clicked.connect(self.reset_game_timer)
+        controls_vbox.addWidget(self.reset_game_btn)
+        
+        chrono_hbox.addLayout(controls_vbox)
+        right_layout.addWidget(chrono_box)
         
         header_layout.addWidget(right_box)
         self.main_layout.addWidget(header_widget)
@@ -487,6 +622,8 @@ class MainWindow(QMainWindow):
             self.role_widgets[role] = col
             
         self.main_layout.addLayout(self.columns_layout)
+
+
         
         # Voice Console (Input Preview)
         self.console_container = QWidget()
@@ -632,6 +769,15 @@ class MainWindow(QMainWindow):
                     msg = f"Error: {role} {spell} is already active!"
                 self.update_status(msg)
 
+        elif role == "game" and spell == "start":
+            if self.game_timer_running:
+                self.play_sound("beep-error.wav")
+                self.update_status("Game already started!")
+            else:
+                self.start_game_timer()
+                self.play_sound("beep.wav")
+                self.update_status("Game Clock Started!")
+
     def on_timer_ready(self, role, spell):
         sound_file = f"{role}_{spell}_ready.wav"
         self.sound_queue.put(sound_file)
@@ -672,6 +818,24 @@ class MainWindow(QMainWindow):
         # Important: Allow next sound in queue
         self.is_playing_sound = False
 
+    def set_gragas_speech(self, text, duration_ms=3000):
+        self.speech_bubble.setText(text)
+        self.speech_bubble.show()
+        
+        # Adjust duration if text is very long
+        actual_duration = max(duration_ms, len(text) * 50)
+        
+        QTimer.singleShot(actual_duration, self.speech_bubble.hide)
+
+
+    def on_plus_clicked(self):
+        amount = 60 if QApplication.keyboardModifiers() & Qt.ShiftModifier else 10
+        self.adjust_game_timer(amount)
+
+    def on_minus_clicked(self):
+        amount = -60 if QApplication.keyboardModifiers() & Qt.ShiftModifier else -10
+        self.adjust_game_timer(amount)
+
     def process_audio_queue(self):
         if not self.is_playing_sound and not self.sound_queue.empty():
             filename = self.sound_queue.get()
@@ -700,6 +864,24 @@ class MainWindow(QMainWindow):
                     # Sync animation with sound duration
                     duration_ms = int(sound.get_length() * 1000) + 200
                     self.start_gragas_speaking(duration_ms)
+                    
+                    # Speech Bubble Integration
+                    speech_text = None
+                    if filename == "welcome.wav":
+                        speech_text = "Hey! Listening and ready!"
+                    elif "ready.wav" in filename:
+                        if filename == "unleashed_teleports_ready.wav":
+                            speech_text = "Teleports are Unleashed! Time for a gank!"
+                        else:
+                            # e.g. top_flash_ready.wav -> "TOP FLASH Ready!"
+                            parts = filename.replace("_ready.wav", "").split("_")
+                            if len(parts) >= 2:
+                                role_name = parts[0].upper()
+                                spell_name = parts[1].upper()
+                                speech_text = f"{role_name} {spell_name} Ready!"
+                    
+                    if speech_text:
+                        self.set_gragas_speech(speech_text, duration_ms)
                 else:
                     self.is_playing_sound = False
             except Exception as e:
@@ -738,6 +920,60 @@ class MainWindow(QMainWindow):
             if is_debug: status += " [DEBUG ACTIVE]"
             self.status_label.setText(status)
 
+        # Game Timer Logic
+        if self.game_timer_running:
+            self.game_time += 1
+            self.update_chrono_ui()
+            
+            # Unleashed Check at 10:00 (600s)
+            if self.game_time == 600:
+                if not self.unleashed_check.isChecked():
+                    self.unleashed_check.setChecked(True)
+                    self.trigger_unleashed_event()
+
+    def update_chrono_ui(self):
+        mins = self.game_time // 60
+        secs = self.game_time % 60
+        self.chrono_label.setText(f"{mins:02d}:{secs:02d}")
+
+    def toggle_game_timer(self):
+        if self.game_timer_running:
+            self.game_timer_running = False
+            self.start_game_btn.setText("RESUME GAME")
+            self.start_game_btn.setStyleSheet("QPushButton { background: #111; color: #C89B3C; border: 2px solid #C89B3C; padding: 10px; border-radius: 5px; }")
+        else:
+            self.start_game_timer()
+
+    def start_game_timer(self):
+        self.game_timer_running = True
+        self.start_game_btn.setText("PAUSE GAME")
+        self.start_game_btn.setStyleSheet("QPushButton { background: #111; color: #FF3333; border: 2px solid #FF3333; padding: 10px; border-radius: 5px; }")
+
+    def reset_game_timer(self):
+        self.game_time = 0
+        self.game_timer_running = False
+        self.update_chrono_ui()
+        self.start_game_btn.setText("START GAME")
+        self.unleashed_check.setChecked(False)
+        self.start_game_btn.setStyleSheet("QPushButton { background: #111; color: #00FF00; border: 2px solid #00FF00; padding: 10px; border-radius: 5px; }")
+        self.play_sound("button_1.wav")
+
+    def adjust_game_timer(self, seconds):
+        self.game_time = max(0, self.game_time + seconds)
+        self.update_chrono_ui()
+        # Handle case where user skips past 10:00
+        if self.game_time >= 600 and not self.unleashed_check.isChecked():
+             self.unleashed_check.setChecked(True)
+             self.trigger_unleashed_event()
+
+    def trigger_unleashed_event(self):
+        # Golden Glow effect
+        self.chrono_label.setStyleSheet("color: #FFD700; background: #000; border: 3px solid #FFD700; border-radius: 10px; padding: 10px;")
+        QTimer.singleShot(2000, lambda: self.chrono_label.setStyleSheet("color: #FFFFFF; background: #000; border: 2px solid #333; border-radius: 10px; padding: 10px;"))
+        
+        # Audio/Animation logic removed play_sound as it is redundant (on_unleashed_changed plays it)
+        self.update_status("TELEPORT UNLEASHED!")
+
     def update_status(self, text):
         self.status_label.setText(text)
 
@@ -762,7 +998,10 @@ class MainWindow(QMainWindow):
         
         status = "Teleport Evolved! (240s)" if is_on else "Teleport Standard (360s)"
         self.update_status(status)
-        self.play_sound("button_2.wav")
+        if is_on:
+            self.play_sound("unleashed_teleports_ready.wav")
+        else:
+            self.play_sound("button_2.wav")
 
     def closeEvent(self, event):
         self.voice_thread.stop()

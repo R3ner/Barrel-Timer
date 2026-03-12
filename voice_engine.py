@@ -67,7 +67,10 @@ class VoiceEngine(QThread):
             "jil": "heal",
             "hill": "heal",   
             "hell": "heal",   
-            "ill": "heal"
+            "ill": "heal",
+            "start": "start",
+            "game": "game",
+            "timer": "timer"
         }
 
         grammar_list = list(self.roles.keys()) + list(self.spells.keys())
@@ -148,6 +151,9 @@ class VoiceEngine(QThread):
                 interpretation = f"{detected_role.upper()} {detected_spell.upper()}"
                 self.text_detected.emit(f"Vosk: \"{text}\" -> Timer: {interpretation}")
                 self.command_detected.emit(detected_role, detected_spell)
+            elif "start" in words and ("game" in words or "timer" in words):
+                 self.text_detected.emit(f"Vosk: \"{text}\" -> Game Start Command")
+                 self.command_detected.emit("game", "start")
             else:
                 self.text_detected.emit(f"Vosk: \"{text}\" (No interpretation)")
 
