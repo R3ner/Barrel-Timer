@@ -6,7 +6,7 @@ import time
 import pyaudio
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout, 
                              QVBoxLayout, QLabel, QComboBox, QFrame, QGraphicsOpacityEffect,
-                             QPushButton, QSpinBox, QCheckBox, QGraphicsDropShadowEffect)
+                             QPushButton, QSpinBox, QCheckBox, QGraphicsDropShadowEffect, QSlider)
 from PySide6.QtCore import Qt, QTimer, Slot, Signal, QThread, QPropertyAnimation, QPoint, QEasingCurve, QUrl
 from PySide6.QtGui import QPixmap, QColor, QFont, QIcon, QMovie
 from PySide6.QtMultimedia import QMediaPlayer, QAudioOutput
@@ -375,7 +375,29 @@ class MainWindow(QMainWindow):
     def init_ui(self):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
-        self.main_layout = QVBoxLayout(central_widget)
+
+        # Wallpaper Background with 80% Opacity Overlay
+        bg_path = "assets/images/background_0.jpg"
+        if os.path.exists(bg_path):
+             central_widget.setObjectName("central_widget")
+             central_widget.setStyleSheet(f"""
+                #central_widget {{
+                    background-image: url("{bg_path.replace('\\', '/')}");
+                    background-position: center;
+                    background-repeat: no-repeat;
+                }}
+             """)
+
+        # Main container with dark overlay (simulating 80% transparency/darkening)
+        self.overlay = QWidget(central_widget)
+        self.overlay.setStyleSheet("background: rgba(10, 10, 10, 220);")
+        
+        # Ensure overlay covers central_widget
+        overlay_layout = QVBoxLayout(central_widget)
+        overlay_layout.setContentsMargins(0, 0, 0, 0)
+        overlay_layout.addWidget(self.overlay)
+        
+        self.main_layout = QVBoxLayout(self.overlay)
                # Header with centered title
         header_widget = QWidget()
         header_layout = QHBoxLayout(header_widget)
@@ -387,16 +409,27 @@ class MainWindow(QMainWindow):
         left_layout = QVBoxLayout(left_box)
         mic_label = QLabel("MICROPHONE:")
         mic_label.setFont(QFont("Segoe UI", 9, QFont.Bold))
+        mic_label.setStyleSheet("color: #C89B3C;")
         left_layout.addWidget(mic_label)
+        
+        mic_row = QHBoxLayout()
+        # Mic Icon (Gracioso style - moved to mic_row, now GIF)
+        self.mic_icon = QLabel()
+        self.mic_icon.setFixedSize(50, 80)
+        mic_gif_path = "assets/images/gragas_micro.gif"
+        if os.path.exists(mic_gif_path):
+            self.mic_movie = QMovie(mic_gif_path)
+            self.mic_movie.setScaledSize(self.mic_icon.size())
+            self.mic_icon.setMovie(self.mic_movie)
+            self.mic_movie.start()
+        mic_row.addWidget(self.mic_icon)
         
         self.mic_select = QComboBox()
         self.populate_mics()
         self.mic_select.setCurrentIndex(self.get_mic_index_from_config())
         self.mic_select.currentIndexChanged.connect(self.on_mic_changed)
         self.mic_select.setStyleSheet("background: #222; border: 1px solid #C89B3C;")
-        left_layout.addWidget(self.mic_select)
-        
-        mic_row = QHBoxLayout()
+        mic_row.addWidget(self.mic_select)
         self.listening_indicator = QLabel("● Listening Active")
         self.listening_indicator.setStyleSheet("color: #00FF00; font-weight: bold;")
         mic_row.addWidget(self.listening_indicator)
@@ -458,11 +491,20 @@ class MainWindow(QMainWindow):
         self.logo_label.setFixedSize(160, 160)
         self.logo_label.setAlignment(Qt.AlignCenter)
         
-        # Static Pixmap
-        logo_path = "assets/images/gragas_barrel_timer.png"
-        if os.path.exists(logo_path):
-            self.static_pixmap = QPixmap(logo_path).scaled(160, 160, Qt.KeepAspectRatio, Qt.SmoothTransformation)
-            self.logo_label.setPixmap(self.static_pixmap)
+        # Idle Movie (GIF)
+        idle_path = "assets/images/gragas_idle.gif"
+        self.idle_movie = None
+        if os.path.exists(idle_path):
+            self.idle_movie = QMovie(idle_path)
+            self.idle_movie.setScaledSize(self.logo_label.size())
+            self.logo_label.setMovie(self.idle_movie)
+            self.idle_movie.start()
+        else:
+            # Fallback to static if idle.gif doesn't exist
+            logo_path = "assets/images/gragas_barrel_timer.png"
+            if os.path.exists(logo_path):
+                self.static_pixmap = QPixmap(logo_path).scaled(160, 160, Qt.KeepAspectRatio, Qt.SmoothTransformation)
+                self.logo_label.setPixmap(self.static_pixmap)
         
         # Speaking Movie (GIF)
         gif_path = "assets/images/gragas_barrel_timer_speaking.gif"
@@ -539,14 +581,14 @@ class MainWindow(QMainWindow):
             } 
             QPushButton:hover { background: #C89B3C; color: #000; }
         """
-        self.minus_10_btn = HoverButton("-", self.chrono_widget)
+        self.minus_10_btn = HoverButton("➖", self.chrono_widget)
         self.minus_10_btn.setFixedSize(24, 24)
         self.minus_10_btn.move(10, 50)
         self.minus_10_btn.setStyleSheet(btn_style)
         self.minus_10_btn.setToolTip("Shift + Click to fast decrease (-60s)")
         self.minus_10_btn.clicked.connect(self.on_minus_clicked)
         
-        self.plus_10_btn = HoverButton("+", self.chrono_widget)
+        self.plus_10_btn = HoverButton("➕", self.chrono_widget)
         self.plus_10_btn.setFixedSize(24, 24)
         self.plus_10_btn.move(146, 50)
         self.plus_10_btn.setStyleSheet(btn_style)
@@ -591,6 +633,24 @@ class MainWindow(QMainWindow):
         self.version_select.setStyleSheet("background: #333; border: 1px solid #C89B3C;")
         self.version_select.currentTextChanged.connect(self.on_version_changed)
         settings_row.addWidget(self.version_select)
+        
+        settings_row.addSpacing(30)
+        
+        vol_label = QLabel("VOL:")
+        vol_label.setFont(QFont("Segoe UI", 10, QFont.Bold))
+        settings_row.addWidget(vol_label)
+        
+        self.volume_slider = QSlider(Qt.Horizontal)
+        self.volume_slider.setRange(0, 100)
+        self.volume_slider.setValue(int(self.config.get("volume", 98)))
+        self.volume_slider.setFixedWidth(150)
+        self.volume_slider.setStyleSheet("""
+            QSlider::groove:horizontal { border: 1px solid #C89B3C; height: 8px; background: #222; margin: 2px 0; border-radius: 4px; }
+            QSlider::handle:horizontal { background: #C89B3C; border: 1px solid #C89B3C; width: 14px; height: 14px; margin: -4px 0; border-radius: 7px; }
+        """)
+        self.volume_slider.valueChanged.connect(self.on_volume_changed)
+        settings_row.addWidget(self.volume_slider)
+        
         settings_row.addStretch()
         self.main_layout.addLayout(settings_row)
 
@@ -783,6 +843,9 @@ class MainWindow(QMainWindow):
         self.sound_queue.put(sound_file)
 
     def start_gragas_speaking(self, duration_ms):
+        if self.idle_movie:
+            self.idle_movie.stop()
+            
         if self.speaking_movie:
             self.logo_label.setMovie(self.speaking_movie)
             self.speaking_movie.start()
@@ -808,7 +871,12 @@ class MainWindow(QMainWindow):
     def stop_gragas_speaking(self):
         if self.speaking_movie:
             self.speaking_movie.stop()
-            self.logo_label.setMovie(None) # Explicitly clear movie
+            
+        if self.idle_movie:
+            self.logo_label.setMovie(self.idle_movie)
+            self.idle_movie.start()
+        elif hasattr(self, 'static_pixmap'):
+            self.logo_label.setMovie(None)
             self.logo_label.setPixmap(self.static_pixmap)
         
         self.shake_anim.stop()
@@ -857,6 +925,9 @@ class MainWindow(QMainWindow):
         if os.path.exists(path):
             try:
                 sound = pygame.mixer.Sound(path)
+                # Apply master volume from config (0-100 -> 0.0-1.0)
+                vol = self.volume_slider.value() / 100.0 if hasattr(self, 'volume_slider') else (self.config.get("volume", 70) / 100.0 / 1.42)
+                sound.set_volume(vol)
                 sound.play()
                 
                 if not is_immediate:
@@ -896,7 +967,10 @@ class MainWindow(QMainWindow):
         if filename in ["beep.wav", "beep-error.wav", "button_1.wav", "button_2.wav"]:
             path = os.path.join("assets", "sounds", filename)
             if os.path.exists(path):
-                pygame.mixer.Sound(path).play()
+                sound = pygame.mixer.Sound(path)
+                vol = self.volume_slider.value() / 100.0 if hasattr(self, 'volume_slider') else (self.config.get("volume", 70) / 100.0 / 1.42)
+                sound.set_volume(vol)
+                sound.play()
             return
         self.sound_queue.put(filename)
 
@@ -1002,6 +1076,12 @@ class MainWindow(QMainWindow):
             self.play_sound("unleashed_teleports_ready.wav")
         else:
             self.play_sound("button_2.wav")
+
+    def on_volume_changed(self, value):
+        self.config["volume"] = value
+        ConfigManager.save_config(self.config)
+        # Apply volume (scaled 0.0-1.0) for subsequent sounds
+        pass
 
     def closeEvent(self, event):
         self.voice_thread.stop()
