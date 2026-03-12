@@ -21,3 +21,6 @@ env/
 # --- system files---
 Thumbs.db
 desktop.ini
+
+# --- .venv ---
+.venv/
