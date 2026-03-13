@@ -28,6 +28,28 @@ class HoverButton(QPushButton):
             QToolTip.showText(QtGui.QCursor.pos(), tooltip, self)
         super().enterEvent(event)
 
+class HoverWidget(QWidget):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setMouseTracking(True)
+
+    def enterEvent(self, event):
+        tooltip = self.toolTip()
+        if tooltip:
+            QToolTip.showText(QtGui.QCursor.pos(), tooltip, self)
+        super().enterEvent(event)
+
+class HoverCheckBox(QCheckBox):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.setMouseTracking(True)
+
+    def enterEvent(self, event):
+        tooltip = self.toolTip()
+        if tooltip:
+            QToolTip.showText(QtGui.QCursor.pos(), tooltip, self)
+        super().enterEvent(event)
+
 
 
 class SpeechBubble(QFrame):
@@ -333,7 +355,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Barrel Timer - Gragas Edition")
-        self.setMinimumSize(1300, 1200)
+        self.setMinimumSize(1600, 1000)
         self.setStyleSheet("""
             QMainWindow { background-color: #0F0F0F; color: #F0E6D2; }
             QToolTip { 
@@ -376,21 +398,9 @@ class MainWindow(QMainWindow):
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
 
-        # Wallpaper Background with 80% Opacity Overlay
-        bg_path = "assets/images/background_0.jpg"
-        if os.path.exists(bg_path):
-             central_widget.setObjectName("central_widget")
-             central_widget.setStyleSheet(f"""
-                #central_widget {{
-                    background-image: url("{bg_path.replace('\\', '/')}");
-                    background-position: center;
-                    background-repeat: no-repeat;
-                }}
-             """)
-
         # Main container with dark overlay (simulating 80% transparency/darkening)
         self.overlay = QWidget(central_widget)
-        self.overlay.setStyleSheet("background: rgba(10, 10, 10, 220);")
+        self.overlay.setStyleSheet("background: rgba(10, 10, 10, 255);")
         
         # Ensure overlay covers central_widget
         overlay_layout = QVBoxLayout(central_widget)
@@ -398,6 +408,16 @@ class MainWindow(QMainWindow):
         overlay_layout.addWidget(self.overlay)
         
         self.main_layout = QVBoxLayout(self.overlay)
+        
+        # Dynamic Background Label
+        self.bg_label = QLabel(central_widget)
+        self.bg_label.lower()
+        self.full_pixmap = None
+        
+        bg_path = "assets/images/background_0.jpg"
+        if os.path.exists(bg_path):
+            self.full_pixmap = QPixmap(bg_path)
+            self.bg_label.setPixmap(self.full_pixmap)
                # Header with centered title
         header_widget = QWidget()
         header_layout = QHBoxLayout(header_widget)
@@ -405,7 +425,6 @@ class MainWindow(QMainWindow):
 
         # Left: Controls
         left_box = QWidget()
-        left_box.setFixedWidth(550) # Balanced with right_box for centering
         left_layout = QVBoxLayout(left_box)
         mic_label = QLabel("MICROPHONE:")
         mic_label.setFont(QFont("Segoe UI", 9, QFont.Bold))
@@ -440,13 +459,13 @@ class MainWindow(QMainWindow):
         self.mute_btn.setStyleSheet("QPushButton { background: #444; } QPushButton:checked { background: #900; }")
         mic_row.addWidget(self.mute_btn)
         left_layout.addLayout(mic_row)
-        header_layout.addWidget(left_box)
+        header_layout.addWidget(left_box, 1)
 
         header_layout.addStretch()
 
         # Center: Branding (with background logo)
         title_container = QWidget()
-        title_container.setFixedSize(600, 200)
+        title_container.setMinimumHeight(200)
         bg_logo_path = "assets/images/barrel_0.png"
         if os.path.exists(bg_logo_path):
             title_container.setStyleSheet(f"""
@@ -478,7 +497,6 @@ class MainWindow(QMainWindow):
 
         # Right: Logo & Unleashed
         right_box = QWidget()
-        right_box.setFixedWidth(550) # Increased to fit bubble
         right_layout = QVBoxLayout(right_box)
         
         logo_row = QHBoxLayout()
@@ -520,25 +538,27 @@ class MainWindow(QMainWindow):
         self.shake_anim = QPropertyAnimation(self.logo_label, b"pos")
         self.shake_anim.setDuration(50)
         self.shake_anim.setLoopCount(-1)
-        
-        # Unleashed TP Toggle Area
-        tp_area = QHBoxLayout()
-        tp_area.setAlignment(Qt.AlignRight)
+              # Unleashed TP Toggle Area (Unified Container)
+        self.tp_container = HoverWidget()
+        self.tp_container.setToolTip("This option automatically active at min 10 if you started the timer before")
+        tp_container_layout = QHBoxLayout(self.tp_container)
+        tp_container_layout.setAlignment(Qt.AlignRight)
+        tp_container_layout.setContentsMargins(0, 0, 0, 0)
         
         tp_icon_label = QLabel()
         tp_icon_path = "assets/images/Unleashed_Teleport_HD.png"
         if os.path.exists(tp_icon_path):
             pixmap = QPixmap(tp_icon_path)
             tp_icon_label.setPixmap(pixmap.scaled(32, 32, Qt.KeepAspectRatio, Qt.SmoothTransformation))
-        tp_area.addWidget(tp_icon_label)
+        tp_container_layout.addWidget(tp_icon_label)
 
         self.unleashed_check = QCheckBox("Min 10+? (Unleashed TP CD)")
         self.unleashed_check.setFont(QFont("Segoe UI", 10, QFont.Bold))
         self.unleashed_check.setStyleSheet("color: #C89B3C; padding: 5px; border: 1px solid #C89B3C; border-radius: 5px; background: #1a1a1a;")
         self.unleashed_check.stateChanged.connect(self.on_unleashed_changed)
-        tp_area.addWidget(self.unleashed_check)
+        tp_container_layout.addWidget(self.unleashed_check)
         
-        right_layout.addLayout(tp_area)
+        right_layout.addWidget(self.tp_container)
 
         # Game Chrono (Repositioned under Gragas Logo)
         chrono_box = QWidget()
@@ -618,7 +638,7 @@ class MainWindow(QMainWindow):
         chrono_hbox.addLayout(controls_vbox)
         right_layout.addWidget(chrono_box)
         
-        header_layout.addWidget(right_box)
+        header_layout.addWidget(right_box, 1)
         self.main_layout.addWidget(header_widget)
 
         # Voice Set Row (Compact)
@@ -674,11 +694,13 @@ class MainWindow(QMainWindow):
         
         # 5 Columns
         self.columns_layout = QHBoxLayout()
+        self.columns_layout.setSpacing(10)
         roles = ["top", "jungler", "mid", "adc", "support"]
         self.role_widgets = {}
-        for role in roles:
+        for i, role in enumerate(roles):
             col = RoleColumn(role)
             self.columns_layout.addWidget(col)
+            self.columns_layout.setStretch(i, 1)
             self.role_widgets[role] = col
             
         self.main_layout.addLayout(self.columns_layout)
@@ -692,7 +714,7 @@ class MainWindow(QMainWindow):
         self.voice_console.setFont(QFont("Consolas", 10))
         self.voice_console.setStyleSheet("color: #666; background: #1a1a1a; padding: 5px 15px; border-radius: 5px;")
         self.voice_console.setAlignment(Qt.AlignCenter)
-        self.voice_console.setFixedWidth(400)
+        self.voice_console.setMinimumWidth(300)
         self.console_layout.addWidget(self.voice_console)
         self.main_layout.addWidget(self.console_container, alignment=Qt.AlignCenter)
         
@@ -715,8 +737,22 @@ class MainWindow(QMainWindow):
         debug_label.setFont(QFont("Segoe UI", 8, QFont.Bold))
         debug_container.addWidget(debug_label)
         
-        self.debug_check = QCheckBox()
+        self.debug_check = HoverCheckBox()
+        self.debug_check.setToolTip("Enable/Disable Debug Mode")
         self.debug_check.setChecked(self.config.get("debug_mode", False))
+        self.debug_check.setStyleSheet("""
+            QCheckBox::indicator { 
+                border: 1px solid #A020F0; 
+                border-radius: 3px; 
+                width: 14px; 
+                height: 14px; 
+                background-color: transparent;
+            }
+            QCheckBox::indicator:checked { 
+                background-color: #A020F0; 
+                image: url(assets/images/check_white.png);
+            }
+        """)
         self.debug_check.stateChanged.connect(self.on_debug_changed)
         debug_container.addWidget(self.debug_check)
         
@@ -724,7 +760,8 @@ class MainWindow(QMainWindow):
         self.debug_spin.setRange(1, 600)
         self.debug_spin.setValue(self.config.get("debug_duration", 5))
         self.debug_spin.setSuffix("s")
-        self.debug_spin.setFixedWidth(60)
+        self.debug_spin.setFixedWidth(85)
+        self.debug_spin.setToolTip("Test CD's setting the seconds you want")
         self.debug_spin.valueChanged.connect(self.on_debug_duration_changed)
         debug_container.addWidget(self.debug_spin)
         footer_layout.addLayout(debug_container)
@@ -1087,6 +1124,17 @@ class MainWindow(QMainWindow):
         self.voice_thread.stop()
         pygame.mixer.quit()
         event.accept()
+
+    def resizeEvent(self, event):
+        # Scale background
+        if self.full_pixmap:
+            scaled_bg = self.full_pixmap.scaled(self.size(), Qt.KeepAspectRatioByExpanding, Qt.SmoothTransformation)
+            self.bg_label.setPixmap(scaled_bg)
+            self.bg_label.resize(self.size())
+            
+        # Ensure overlay matches window size
+        self.overlay.resize(self.size())
+        super().resizeEvent(event)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

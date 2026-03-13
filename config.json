@@ -2,7 +2,7 @@
     "voice_set": "v2",
     "volume": 87,
     "language": "en-us",
-    "microphone_index": 1,
+    "microphone_index": 2,
     "debug_mode": false,
     "debug_duration": 3
 }
