@@ -673,10 +673,28 @@ class MainWindow(QMainWindow):
             self.columns_layout.setStretch(i, 1)
             self.role_widgets[role] = col
             
+            
         self.main_layout.addLayout(self.columns_layout)
 
+        self.reset_all_btn = QPushButton("RESET ALL")
+        self.reset_all_btn.setFont(QFont("Segoe UI", 12, QFont.Bold))
+        self.reset_all_btn.setFixedSize(200, 45)
+        self.reset_all_btn.setStyleSheet("""
+            QPushButton {
+                background: #111;
+                color: #C89B3C;
+                border: 2px solid #C89B3C;
+                border-radius: 5px;
+            }
+            QPushButton:hover {
+                background: #900;
+                color: #fff;
+                border: 2px solid #f00;
+            }
+        """)
+        self.reset_all_btn.clicked.connect(self.on_reset_all_clicked)
+        self.main_layout.addWidget(self.reset_all_btn, alignment=Qt.AlignCenter)
 
-        
         self.console_container = QWidget()
         self.console_layout = QHBoxLayout(self.console_container)
         self.voice_console = QLabel("Last heard: ...")
@@ -1102,6 +1120,13 @@ class MainWindow(QMainWindow):
 
     def update_status(self, text):
         self.status_label.setText(text)
+
+    def on_reset_all_clicked(self):
+        for col in self.role_widgets.values():
+            col.clear_timers()
+        self.reset_game_timer()
+        self.play_sound("button_1.wav")
+        self.update_status("ALL TIMERS RESET!")
 
     def on_version_changed(self, version):
         self.config["voice_set"] = version
