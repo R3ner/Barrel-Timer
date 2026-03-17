@@ -6,6 +6,12 @@ Barrel Timer is a tactical tool for League of Legends designed to track enemy Su
 
 ---
 
+> [!IMPORTANT]
+> **Barrel Timer** is a convenience tool, not automation. It provides information a player could otherwise obtain with a manual stopwatch. 
+> - **Zero Integration:** It does not read from or write to the game's memory.
+> - **No Overlay:** The application runs as a background tool and can be set on a secondary monitor; it does not inject any visual elements into the game client.
+> - **Privacy & Performance:** Voice recognition is processed 100% offline. No data is sent to external servers.
+
 ## Features
 
 - **Voice Recognition:** Integrated offline speech engine for hands-free cooldown logging.
@@ -13,7 +19,6 @@ Barrel Timer is a tactical tool for League of Legends designed to track enemy Su
 - **Ionian Boots Integration:** Manual toggle for Summoner Spell Haste per role.
 - **Audio Alerts:** Vocal notifications when tracked enemy spells are available.
 - **Responsive Interface:** Adaptive UI designed for secondary monitors and different resolutions.
-- **Theme Selection:** Support for Classic and Hextech visual styles.
 
 ---
 
@@ -42,7 +47,13 @@ Ensure you have a microphone properly configured in your operating system before
   ```bash
   pip install -r requirements.txt
   ```
-4. Execute the application:
+4. **Download the Voice Recognition Model:**
+   The application requires an offline **Vosk** model to process voice commands:
+   - Download the **Small American English** model from [Vosk Models](https://alphacephei.com/vosk/models).
+   - We gonna use: `vosk-model-small-en-us-0.15` (Lightweight for low CPU usage).
+   - Extract the downloaded folder into the project root and rename it to `models`.
+   
+5. Execute the application:
   ```bash
   python main.py
   ```
@@ -61,7 +72,7 @@ This project uses high-quality assets and sounds from the community:
 
 <div align="center">
 
-Developed by [R3ner](https://github.com/R3ner)
+Tool developed by [R3ner](https://github.com/R3ner)
 
 <br>
 
