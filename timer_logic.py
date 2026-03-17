@@ -1,3 +1,4 @@
+# Barrel Timer v1.9.4-a - Developed by Rener
 import time
 
 class SpellTimer:
