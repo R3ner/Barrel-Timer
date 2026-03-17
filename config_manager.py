@@ -1,9 +1,10 @@
+# Barrel Timer v1.9.4-a - Developed by Rener
 import json
 import os
 
 class ConfigManager:
     DEFAULT_CONFIG = {
-        "voice_set": "v1",  # v1 or v2
+        "voice_set": "v2",  # v1 or v2
         "volume": 0.8,
         "language": "en-us",
         "microphone_index": None,

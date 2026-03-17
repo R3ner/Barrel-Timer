@@ -1,3 +1,4 @@
+# Barrel Timer v1.9.4-a - Developed by Rener
 import json
 import os
 import pyaudio
@@ -6,9 +7,9 @@ from PySide6.QtCore import QThread, Signal
 from vosk import Model, KaldiRecognizer
 
 class VoiceEngine(QThread):
-    command_detected = Signal(str, str)  # (role, spell)
+    command_detected = Signal(str, str)
     status_updated = Signal(str)
-    text_detected = Signal(str) # For the live preview
+    text_detected = Signal(str)
 
     def __init__(self, model_path, mic_index=None):
         super().__init__()
@@ -16,43 +17,43 @@ class VoiceEngine(QThread):
         self.mic_index = mic_index
         self.muted = False
         self.running = True
-        # Define roles and spells for grammar
+        # Define roles and spells for grammar (I added some extra words that sound similar because my pronunciation is bad lol)
         self.roles = {
             "top": "top",
-            "stop": "top", 
+            "stop": "top",
             "jungle": "jungler",
-            "young": "jungler",  
-            "uncle": "jungler",  
+            "young": "jungler",
+            "uncle": "jungler",
             "mid": "mid",
-            "meet": "mid",   
+            "meet": "mid",
             "meat": "mid",
             "adc": "adc",
-            "eighty": "adc", 
-            "abc": "adc",    
-            "ades": "adc",   
+            "eighty": "adc",
+            "abc": "adc",
+            "ades": "adc",
             "carry": "adc",
             "support": "support",
             "supp": "support",
             "sport": "support",
             "port": "support",
         }
-        
+
         self.spells = {
             "flash": "flash",
             "flas": "flash",
             "flesh": "flash",
-            "flush": "flash", 
+            "flush": "flash",
             "ignite": "ignite",
-            "night": "ignite",  
-            "unite": "ignite", 
+            "night": "ignite",
+            "unite": "ignite",
             "teleport": "teleport",
             "tepe": "teleport",
             "tp": "teleport",
-            "tv": "teleport",   
+            "tv": "teleport",
             "ghost": "ghost",
             "gos": "ghost",
-            "goes": "ghost",   
-            "gold": "ghost",   
+            "goes": "ghost",
+            "gold": "ghost",
             "barrier": "barrier",
             "barr": "barrier",
             "cleanse": "cleanse",
@@ -61,12 +62,12 @@ class VoiceEngine(QThread):
             "exhaust": "exhaust",
             "exos": "exhaust",
             "smite": "smite",
-            "might": "smite",  
-            "smile": "smite",  
+            "might": "smite",
+            "smile": "smite",
             "heal": "heal",
             "jil": "heal",
-            "hill": "heal",   
-            "hell": "heal",   
+            "hill": "heal",
+            "hell": "heal",
             "ill": "heal",
             "start": "start",
             "game": "game",
@@ -91,10 +92,9 @@ class VoiceEngine(QThread):
         try:
             model = Model(self.model_path)
             p = pyaudio.PyAudio()
-            
-            # Function to start stream
+
             def start_stream(index):
-                return p.open(format=pyaudio.paInt16, channels=1, rate=16000, 
+                return p.open(format=pyaudio.paInt16, channels=1, rate=16000,
                              input=True, frames_per_buffer=8000, input_device_index=index)
 
             rec = KaldiRecognizer(model, 16000, self.grammar)
@@ -105,7 +105,6 @@ class VoiceEngine(QThread):
             current_mic = self.mic_index
 
             while self.running:
-                # Check if mic changed
                 if current_mic != self.mic_index:
                     stream.stop_stream()
                     stream.close()
