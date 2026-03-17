@@ -5,6 +5,11 @@ import pygame
 import queue
 import time
 import pyaudio
+# --- Environment Setup ---
+# Ensure the working directory is always the script's parent folder
+# This prevents path errors when launched from shortcuts :D
+BASE_PATH = os.path.dirname(os.path.abspath(__file__))
+os.chdir(BASE_PATH)
 from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QHBoxLayout, 
                              QVBoxLayout, QLabel, QComboBox, QFrame, QGraphicsOpacityEffect,
                              QPushButton, QSpinBox, QCheckBox, QGraphicsDropShadowEffect, QSlider)
