@@ -70,6 +70,28 @@ Ensure you have a microphone properly configured in your operating system before
   ```bash
   python main.py
   ```
+
+## User Experience - Shorcut for quick launch
+
+<details>
+<summary><b>Click to expand: Don't want to use the console every time? Create a Shortcut!</b></summary>
+<br>
+
+You can launch **Barrel Timer** like a standard Windows application by creating a custom desktop shortcut:
+
+1. **Create the Shortcut:**
+   * Right-click on your Desktop -> **New** -> **Shortcut**.
+2. **The "Target" Field:**
+   * Paste the path to your `pythonw.exe` followed by the path to your `main.py` file.
+   * *Example:* `C:\Python3\pythonw.exe "C:\Users\Your_User\Documents\Barrel-Timer\main.py"`
+   * *(Note: Using **pythonw** ensures the app runs in the background without a console window!)*
+3. **Custom Icon:**
+   * Right-click the shortcut -> **Properties** -> **Change Icon**.
+   * Select the `barrel-timer.ico` file from the `/Barrel-Timer/assets/` folder.
+
+Now you can just double-click your icon and start timing spells instantly! :D
+</details>
+
 ## Technical Overview
 
 <details>
