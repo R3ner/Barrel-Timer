@@ -61,6 +61,7 @@ Ensure you have a microphone properly configured in your operating system before
    - Download the **Small American English** model from [Vosk Models](https://alphacephei.com/vosk/models).
    - We gonna use: `vosk-model-small-en-us-0.15` (Lightweight for low CPU usage).
    - Extract the downloaded folder into the project root and rename it to `models`.
+   - It should look like this `/Barrel-Timer/models/vosk-model-small-en-us-0.15/`
    
 5. Execute the application:
   ```bash
