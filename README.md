@@ -69,6 +69,22 @@ Ensure you have a microphone properly configured in your operating system before
   ```bash
   python main.py
   ```
+## Technical Overview
+
+<details>
+<summary><b>Click to expand: How it works?</b></summary>
+<br>
+
+The application operates as a standalone Python process, independent of the League of Legends client. Here is the technical workflow:
+
+1. **Audio Capture:** The system initializes a localized audio stream using the `SoundDevice` library, capturing input from the default system microphone.
+2. **Offline Inference:** Captured audio is processed by a **Vosk** Lightweight Model. This happens entirely on your local CPU; no voice data is transmitted to external APIs or cloud services.
+3. **Keyword Detection:** A custom parser monitors the transcribed text for specific "Role + Spell" patterns (e.g., "Mid Flash").
+4. **State Management:** Upon detection, the internal engine calculates the specific cooldown based on active modifiers (Ionian Boots, Unleashed TP status) and starts a non-blocking asynchronous timer.
+5. **UI & Audio Feedback:** The PySide6 interface updates the countdown visually, and a localized audio cue is triggered once the timer reaching zero via `Pygame.mixer`.
+
+</details>
+
 ## Credits & Attributions
 
 This project uses high-quality assets and sounds from the community:
