@@ -22,6 +22,8 @@ Barrel Timer is a tactical tool for League of Legends designed to track enemy Su
 > - **Privacy & Performance:** Voice recognition is processed 100% offline. No data is sent to external servers.
 
 ## Features
+<img width="1602" height="1133" alt="image" src="https://github.com/user-attachments/assets/8b451ab5-67fa-4f08-8c91-a467aeebc1ea" />
+
 
 - **Voice Recognition:** Integrated offline speech engine for hands-free cooldown logging.
 - **Dynamic Cooldown Calculation:** Automated tracking for Flash, Teleport, Ignite, and other spells.
