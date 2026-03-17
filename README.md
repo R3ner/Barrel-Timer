@@ -83,7 +83,7 @@ You can launch **Barrel Timer** like a standard Windows application by creating 
    * Right-click on your Desktop -> **New** -> **Shortcut**.
 2. **The "Target" Field:**
    * Paste the path to your `pythonw.exe` followed by the path to your `main.py` file.
-   * *Example:* `C:\Python3\pythonw.exe "C:\Users\Your_User\Documents\Barrel-Timer\main.py"`
+   * *Example:* `C:\Python3\pythonw.exe "C:\Users\Your_User\Documents\Barrel-Timer\main.py"` also `pythonw.exe "C:\Users\Your_User\Documents\Barrel-Timer\main.py"` can work perfectly too.
    * *(Note: Using **pythonw** ensures the app runs in the background without a console window!)*
 3. **Custom Icon:**
    * Right-click the shortcut -> **Properties** -> **Change Icon**.
