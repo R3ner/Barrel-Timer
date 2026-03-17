@@ -1,7 +1,3 @@
-# Barrel Timer - Gragas Edition
-<p align="center">
-  <img src="assets/images/gragas_barrel_timer.png" width="150" alt="Gragas Logo">
-</p>
 <div align="center">
 
 ![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)
@@ -10,6 +6,11 @@
 ![Framework](https://img.shields.io/badge/UI-PySide6-green)
 
 </div>
+
+# Barrel Timer - Gragas Edition
+<p align="center">
+  <img src="assets/images/gragas_barrel_timer.png" width="150" alt="Gragas Logo">
+</p>
 
 Barrel Timer is a tactical tool for League of Legends designed to track enemy Summoner Spells through voice commands. This allows players to register cooldowns in real-time without interrupting gameplay or manual typing.
 
