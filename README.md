@@ -55,7 +55,7 @@ Ensure you have a microphone properly configured in your operating system before
   ```bash
   cd Barrel-Timer
   ```
-3. Install required dependencies (You need Python installed):
+3. Install required dependencies (You need Python 3.13 installed please avoid 3.14 experimental version because some libs are not yet updated for it):
   ```bash
   pip install -r requirements.txt
   ```
