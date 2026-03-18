@@ -1,6 +1,6 @@
 <div align="center">
 
-![Python Version](https://img.shields.io/badge/python-3.9+-blue.svg)
+![Python Version](https://img.shields.io/badge/python-3.13-blue.svg)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Platform](https://img.shields.io/badge/platform-windows%20%7C%20linux%20%7C%20macos-lightgrey)
 ![Framework](https://img.shields.io/badge/UI-PySide6-green)
