@@ -109,6 +109,8 @@ The application operates as a standalone Python process, independent of the Leag
 
 </details>
 
+# Test a ported web version [Here](https://r3ner.github.io/Barrel-Timer-Web/)
+
 ## Credits & Attributions
 
 This project uses high-quality assets and sounds from the community:
