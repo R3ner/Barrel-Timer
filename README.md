@@ -59,7 +59,7 @@ Ensure you have a microphone properly configured in your operating system before
   ```bash
   pip install -r requirements.txt
   ```
-4. **Download the Voice Recognition Model:**
+4. (⚠️DO NOT SKIP THIS STEP⚠️) **Download the Voice Recognition Model:**
    The application requires an offline **Vosk** model to process voice commands:
    - Download the **Small American English** model from [Vosk Models](https://alphacephei.com/vosk/models).
    - We gonna use: `vosk-model-small-en-us-0.15` (Lightweight for low CPU usage).
